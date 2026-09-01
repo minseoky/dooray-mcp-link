@@ -4,6 +4,8 @@ Dooray MCP server in pure JavaScript. It exposes Dooray's account, calendar, pro
 
 The package ships no compiled executable. Node runs the JavaScript directly, so nothing is unpacked, written, or launched as a binary on the machine.
 
+It was built for internal use and hands-on sessions at NHN LINK, which is why it defaults to caution: write-capable tools require an explicit confirmation on every call, read-only mode removes them entirely, and the Dooray token is never forwarded outside the API origin. It is published openly and works against any Dooray tenant.
+
 ## Requirements
 
 - Node.js 18 or newer
