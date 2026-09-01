@@ -1,0 +1,38 @@
+{
+  "name": "dooray-mcp-link",
+  "version": "0.1.0",
+  "description": "Dooray MCP server in pure JavaScript, with read-only mode and confirmation-gated write tools",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/minseoky/dooray-mcp-link.git"
+  },
+  "homepage": "https://github.com/minseoky/dooray-mcp-link#readme",
+  "bugs": {
+    "url": "https://github.com/minseoky/dooray-mcp-link/issues"
+  },
+  "bin": {
+    "dooray-mcp-link": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "start": "node ./src/index.js",
+    "test": "node --test",
+    "check": "node --check ./src/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "dooray",
+    "model-context-protocol",
+    "claude"
+  ],
+  "license": "MIT",
+  "author": "minseoky"
+}
