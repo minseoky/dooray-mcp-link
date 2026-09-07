@@ -7,6 +7,11 @@ import { pipeline } from "node:stream/promises";
 import { Transform, Readable } from "node:stream";
 import path from "node:path";
 
+import {
+  assertRedirectAllowed,
+  MAX_DOWNLOAD_BYTES,
+} from "./redirect.js";
+
 // These hosts receive the Dooray token on an HTTPS redirect even though they
 // are not the configured API origin. Every other origin gets no credentials.
 const TRUSTED_DOWNLOAD_AUTH_HOSTS = new Set(["file-api.dooray.com"]);
@@ -76,6 +81,8 @@ export class DoorayClient {
       }
 
       const redirectUrl = new URL(location, response.url);
+      await assertRedirectAllowed(redirectUrl, new URL(this.endpoint));
+
       response = await this.#fetch(redirectUrl, {
         headers: shouldSendDownloadAuthorization(redirectUrl, endpointOrigin)
           ? headers
@@ -104,6 +111,14 @@ export class DoorayClient {
     const counter = new Transform({
       transform(chunk, encoding, callback) {
         size += chunk.length;
+        if (size > MAX_DOWNLOAD_BYTES) {
+          callback(
+            new Error(
+              `Dooray download exceeded the ${MAX_DOWNLOAD_BYTES} byte limit`,
+            ),
+          );
+          return;
+        }
         callback(null, chunk);
       },
     });
@@ -181,14 +196,19 @@ export function contentDispositionFileName(contentDisposition) {
 /**
  * Strips directory components and the characters Windows rejects, so a name
  * chosen by the server cannot escape the download directory.
+ *
+ * This is deliberately pure string handling rather than path.basename, whose
+ * result depends on the platform: on Windows that reads a leading "a:" as a
+ * drive letter and drops it, silently losing the first characters of a name
+ * that merely contains a colon.
  */
 export function sanitizeFileName(fileName) {
   const raw = String(fileName ?? "");
   const lastSeparator = Math.max(raw.lastIndexOf("/"), raw.lastIndexOf("\\"));
 
-  let baseName = path.basename(raw.slice(lastSeparator + 1));
+  let baseName = raw.slice(lastSeparator + 1);
   baseName = baseName.replace(/[\\/:*?"<>|\u0000-\u001F]/g, "_");
   baseName = baseName.replace(/^[\s.]+|[\s.]+$/g, "");
 
-  return baseName && baseName !== "_" ? baseName : "dooray-attachment";
+  return /[^_]/.test(baseName) ? baseName : "dooray-attachment";
 }

@@ -1,6 +1,6 @@
 {
   "name": "dooray-mcp-link",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Dooray MCP server in pure JavaScript, built for internal use at NHN LINK, with read-only mode and confirmation-gated write tools",
   "type": "module",
   "repository": {

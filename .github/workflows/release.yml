@@ -1,0 +1,56 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # The file name and path handling has to behave the same on Windows,
+        # which is where a platform-dependent basename once lost characters.
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - run: npm test
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      # Lets npm record a signed provenance attestation, which ties the
+      # published tarball to this workflow run and commit. Without it, a
+      # tarball uploaded from a stolen npm account is indistinguishable from a
+      # genuine one, because its hash is simply registered as the new truth.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - run: npm ci
+      - run: npm test
+
+      - name: Align the version with the tag
+        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
+
+      - name: Publish with provenance
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish the GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true

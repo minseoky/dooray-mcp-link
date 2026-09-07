@@ -8,6 +8,7 @@ import {
   enumSchema,
   CONFIRM_DESCRIPTION,
 } from "./schema.js";
+import { wrapUntrusted } from "./untrusted.js";
 
 // Tools that change Dooray state. They are hidden in read-only mode, and they
 // require an explicit confirmation on every call.
@@ -552,6 +553,10 @@ export function toolHandlers(client) {
   };
 }
 
+// The one tool whose result is produced locally rather than fetched from
+// Dooray, so it carries no third-party content to mark.
+const LOCAL_TOOL_NAMES = new Set(["os"]);
+
 /** Returns the tools visible in the given mode, paired with their handlers. */
 export function buildRegistry(client, readOnly) {
   const handlers = toolHandlers(client);
@@ -561,9 +566,20 @@ export function buildRegistry(client, readOnly) {
 
   const byName = new Map();
   for (const tool of tools) {
-    if (handlers[tool.name]) {
-      byName.set(tool.name, handlers[tool.name]);
+    const handler = handlers[tool.name];
+    if (!handler) {
+      continue;
     }
+
+    // Anything that came back from Dooray was written by people who can post to
+    // a project this token reads, so it is delimited as untrusted before it
+    // reaches the model.
+    byName.set(
+      tool.name,
+      LOCAL_TOOL_NAMES.has(tool.name)
+        ? handler
+        : async (input) => wrapUntrusted(await handler(input)),
+    );
   }
 
   return { tools, handlers: byName };
